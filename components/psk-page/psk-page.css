@@ -26,6 +26,10 @@
   flex:2;
 }
 
+.container {
+  max-width: 100%!important;
+}
+
 .toc {
   flex: 1;
   order: 2;
