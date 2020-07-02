@@ -53,6 +53,10 @@
   font-size: 1.802rem;
 }
 
+:host(.no-title) .page-title{
+  display: none;
+}
+
 @media (min-width: 1367px) {
   .toc + .container {
     max-width: calc(100% - 25rem );
