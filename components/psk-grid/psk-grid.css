@@ -9,6 +9,7 @@
 
 .withSeparator .row {
     border-bottom: 1px solid #00000021;
+    padding-top: 10px;
 }
 
 .withSeparator:last-child .row {
