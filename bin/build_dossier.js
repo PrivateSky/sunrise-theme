@@ -5,17 +5,26 @@ require("./../../../privatesky/psknode/bundles/csbBoot.js");
 require("./../../../privatesky/psknode/bundles/edfsBar.js");
 const fs = require("fs");
 const EDFS = require("edfs");
-
-const edfs = EDFS.attachToEndpoint(BRICK_STORAGE_ENDPOINT);
-
-function storeSeed(seed_path, seed, callback) {
-    fs.writeFile(seed_path, seed, (err) => {
-        return callback(err, seed);
+$$.BDNS.addConfig("default", {
+    endpoints: [
+        {
+            endpoint: BRICK_STORAGE_ENDPOINT,
+            type: 'brickStorage'
+        },
+        {
+            endpoint: BRICK_STORAGE_ENDPOINT,
+            type: 'anchorService'
+        }
+    ]
+})
+function storeKeySSI(seed_path, keySSI, callback) {
+    fs.writeFile(seed_path, keySSI, (err) => {
+        return callback(err, keySSI);
     });
 }
 
 function createDossier(callback) {
-    edfs.createBar((err, bar) => {
+    EDFS.createDSU("Bar", (err, bar) => {
         if (err) {
             return callback(err);
         }
@@ -25,8 +34,8 @@ function createDossier(callback) {
 }
 
 function updateDossier(bar, callback) {
-    bar.delete("/", function(err){
-        if(err){
+    bar.delete("/", function (err) {
+        if (err) {
             throw err;
         }
 
@@ -34,7 +43,12 @@ function updateDossier(bar, callback) {
             if (err) {
                 return callback(err);
             }
-            storeSeed(DOSSIER_SEED_FILE_PATH, bar.getSeed(), callback);
+            bar.getKeySSI((err, keySSI) => {
+                if (err) {
+                    return callback(err);
+                }
+                storeKeySSI(DOSSIER_SEED_FILE_PATH, keySSI, callback);
+            });
         });
     });
 }
@@ -46,22 +60,21 @@ function build_dossier(callback) {
             return createDossier(callback);
         }
 
-        const SEED = require("bar").Seed;
-        let seed;
+        let keySSI;
         try {
-            seed = new SEED(content);
+            keySSI = require("key-ssi-resolver").keySSIFactory.create(content.toString());
         } catch (err) {
-            console.log("Invalid seed. Creating a new Dossier...");
+            console.log("Invalid KeySSI. Creating a new Dossier...");
             return createDossier(callback);
         }
 
-        if(seed.getEndpoint() !== BRICK_STORAGE_ENDPOINT){
+        if (keySSI.getHint() !== BRICK_STORAGE_ENDPOINT) {
             console.log("Endpoint change detected. Creating a new Dossier...");
             return createDossier(callback);
         }
 
         console.log("Dossier updating...");
-        edfs.loadBar(content, (err, bar) => {
+        EDFS.resolveSSI(content.toString(), "Bar", (err, bar) => {
             if (err) {
                 return callback(err);
             }
@@ -71,7 +84,7 @@ function build_dossier(callback) {
     });
 }
 
-build_dossier(function (err, seed) {
+build_dossier(function (err, keySSI) {
     let path = require("path");
     let projectName = path.basename(path.join(__dirname, "../"));
     if (err) {
@@ -79,5 +92,5 @@ build_dossier(function (err, seed) {
         console.log(err);
         process.exit(1);
     }
-    console.log(`Build process of <${projectName}> finished. Dossier Seed:`, seed);
+    console.log(`Build process of <${projectName}> finished. Dossier's KeySSI:`, keySSI);
 });
